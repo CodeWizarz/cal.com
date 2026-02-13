@@ -815,6 +815,22 @@ export const EventTeamAssignmentTab = ({
     name: "hostGroups",
   });
 
+  const optionalTeamMemberEmails =
+    useWatch({
+      control,
+      name: "metadata.config.optionalTeamMemberEmails",
+    }) ?? [];
+
+  const [optionalGuestsEnabled, setOptionalGuestsEnabled] = useState(
+    optionalTeamMemberEmails.length > 0
+  );
+
+  useEffect(() => {
+    if (optionalTeamMemberEmails.length > 0) {
+      setOptionalGuestsEnabled(true);
+    }
+  }, [optionalTeamMemberEmails.length]);
+
   return (
     <div>
       {team && !isManagedEventType && (
@@ -950,6 +966,50 @@ export const EventTeamAssignmentTab = ({
             customClassNames={customClassNames?.hosts}
             hideFixedHostsForCollective={hideFixedHostsForCollective}
           />
+          <div className="border-subtle mt-4 flex flex-col rounded-md">
+            <div className="border-subtle rounded-t-md border p-6 pb-5">
+              <Label className="mb-1 text-sm font-semibold">{t("optional_team_member_guests")}</Label>
+              <p className="text-subtle wrap-break-word max-w-full text-sm leading-tight">
+                {t("optional_team_member_guests_description")}
+              </p>
+            </div>
+            <div className="border-subtle rounded-b-md border border-t-0 p-6">
+              <Controller<FormValues>
+                name="metadata.config.optionalTeamMemberEmails"
+                render={({ field: { value, onChange } }) => {
+                  const optionalGuestEmails = value ?? [];
+
+                  return (
+                    <SettingsToggle
+                      title={t("add_team_member_as_optional_guest")}
+                      checked={optionalGuestsEnabled}
+                      onCheckedChange={(checked) => {
+                        setOptionalGuestsEnabled(checked);
+                        if (!checked) {
+                          onChange([]);
+                        }
+                      }}>
+                      {optionalGuestsEnabled ? (
+                        <div className="mt-4">
+                          <Select
+                            options={teamMembersOptions}
+                            value={teamMembersOptions.filter((member) =>
+                              optionalGuestEmails.includes(member.email)
+                            )}
+                            isMulti
+                            placeholder={t("select_team_members")}
+                            onChange={(selectedOptions) => {
+                              onChange(selectedOptions.map((option) => option.email));
+                            }}
+                          />
+                        </div>
+                      ) : null}
+                    </SettingsToggle>
+                  );
+                }}
+              />
+            </div>
+          </div>
         </>
       )}
       {team && isManagedEventType && (

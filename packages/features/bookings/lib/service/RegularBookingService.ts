@@ -1388,7 +1388,14 @@ async function handler(
     ? process.env.BLACKLISTED_GUEST_EMAILS.split(",")
     : [];
 
-  const guestEmails = (reqGuests || []).map((email) => extractBaseEmail(email).toLowerCase());
+  const optionalTeamMemberEmails = isTeamEventType
+    ? (eventType.metadata?.config?.optionalTeamMemberEmails ?? [])
+    : [];
+
+  const allGuestEmails = [...new Set([...(reqGuests || []), ...optionalTeamMemberEmails])];
+  const optionalTeamMemberEmailSet = new Set(optionalTeamMemberEmails.map((email) => email.toLowerCase()));
+
+  const guestEmails = allGuestEmails.map((email) => extractBaseEmail(email).toLowerCase());
   const guestUsers = await deps.userRepository.findManyByEmailsWithEmailVerificationSettings({
     emails: guestEmails,
   });
@@ -1400,7 +1407,7 @@ async function handler(
   }
 
   const guestsRemoved: string[] = [];
-  const guests = (reqGuests || []).reduce((guestArray, guest) => {
+  const guests = allGuestEmails.reduce((guestArray, guest) => {
     const baseGuestEmail = extractBaseEmail(guest).toLowerCase();
 
     if (blacklistedGuestEmails.some((e) => e.toLowerCase() === baseGuestEmail)) {
@@ -1414,7 +1421,11 @@ async function handler(
     }
 
     // If it's a team event, remove the team member from guests
-    if (isTeamEventType && users.some((user) => user.email === guest)) {
+    if (
+      isTeamEventType &&
+      !optionalTeamMemberEmailSet.has(guest.toLowerCase()) &&
+      users.some((user) => user.email === guest)
+    ) {
       return guestArray;
     }
     guestArray.push({
