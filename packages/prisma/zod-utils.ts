@@ -252,6 +252,7 @@ const _eventTypeMetaDataSchemaWithoutApps = z.object({
   config: z
     .object({
       useHostSchedulesForTeamEvent: z.boolean().optional(),
+      optionalTeamMemberEmails: z.array(z.string().email()).optional(),
     })
     .optional(),
   bookerLayouts: bookerLayouts.optional(),
